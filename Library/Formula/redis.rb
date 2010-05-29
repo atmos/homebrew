@@ -24,17 +24,48 @@ class Redis <Formula
       s.gsub! "/var/run/redis.pid", "#{var}/run/redis.pid"
       s.gsub! "dir ./", "dir #{var}/db/redis/"
     end
-    
+
     etc.install "redis.conf"
+
+    (prefix+'io.redis.redis-server.plist').write startup_plist
   end
 
   def caveats
     <<-EOS.undent
-      To start redis:
+      Automatically load on login with:
+        launchctl load -w #{prefix}/io.redis.redis-server.plist
+
+      To start redis manually:
         redis-server #{etc}/redis.conf
 
       To access the server:
         redis-cli
     EOS
+  end
+
+  def startup_plist
+    return <<-EOPLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>KeepAlive</key>
+    <true/>
+    <key>Label</key>
+    <string>io.redis.redis-server</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>#{bin}/redis-server</string>
+      <string>#{etc}/redis.conf</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>UserName</key>
+    <string>#{`whoami`.chomp}</string>
+    <key>WorkingDirectory</key>
+    <string>#{HOMEBREW_PREFIX}</string>
+  </dict>
+</plist>
+    EOPLIST
   end
 end
